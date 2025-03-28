@@ -6,6 +6,8 @@
 
 void* memCheck(void* a);
 
+int type;
+
 typedef struct sgnp{
     bool Mem2Reg;
     bool MemWrite;
@@ -19,8 +21,6 @@ typedef struct sgnp{
 }control_signal;
 control_signal* uc(unsigned int inst, unsigned int function);
 void instruction_name_finder(unsigned int inst, unsigned int function, char* name);
-
-
 
 typedef struct codigo{
     char instrucao[20];
@@ -36,7 +36,7 @@ typedef struct codigo{
 inst *cria_mem();
 void ler_mem(inst *mem_lida);
 int binario_para_decimal(char binario[], int inicio, int fim);
-control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function);
+control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function, char *instruction);
 
 int main(){
     inst *inst_mem = cria_mem();
@@ -46,12 +46,13 @@ int main(){
         printf("Linha %i: %s", i+1, inst_mem[i].instrucao);
     }
 
-    unsigned int a = binario_para_decimal(inst_mem[1].instrucao,0,15);
+    unsigned int a = binario_para_decimal(inst_mem[0].instrucao,0,15);
 
-    int y = binario_para_decimal(inst_mem[1].instrucao,0,15);
+    int y = binario_para_decimal(inst_mem[0].instrucao,0,15);
+
     control_signal* csignal = uc((a>>12)&15,a&7);
     printf("%s\n",csignal->name);
-    control_signal* cusignal = regis((a>>9)&7,(a>>6)&7, (a>>3)&7, (a>>0)&7);
+    control_signal* cusignal = regis(a,a,a,a,inst_mem[0].instrucao);
 
     return 0;
 }
@@ -110,18 +111,25 @@ int binario_para_decimal(char binario[], int inicio, int fim) {
     for (int i = inicio; i <= fim; i++) {
         if (binario[i] == '1') {
             decimal += pow(2, fim - i);
-            printf("decimal atual = %i\n",decimal);
         };
     };
 
     return decimal;
 };
 
-control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function){
-    printf("rs:%i\n", rs);
-    printf("rt:%i\n", rt);
-    printf("rd:%i\n", rd);
-    printf("function:%i\n", function);
+control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function, char *instruction){
+
+    printf("%s",instruction);
+    if (type == 0){
+        printf("INSTRUCAO DE TIPO R\n");
+        printf("rs: %i\t rt: %i\t rd: %i\t function: %i\n",((rs>>9)&7),((rt>>6)&7),((rd>>3)&7),((function>>0)&7));
+    } else if (type == 1){
+        printf("INSTRUCAO DE TIPO I\n");
+        printf("rs: %i\trt: %i\tendereco: %i\n",((rs>>9)&7),((rt>>6)&7),((function>>0)&63));
+    } else if (type == 2){
+        printf("INSTRUCAO DE TIPO J\n");
+        printf("endereco: %i\n",((function>>0)&2047));
+    }
 }
 
 
@@ -163,12 +171,11 @@ control_signal* uc(unsigned int inst, unsigned int function){
     return result;
 }
 void instruction_name_finder(unsigned int inst, unsigned int function, char* name){
+
     switch(inst){
         case 0:
+            type = 0;
             switch(function){
-                case 0:
-                case 2:
-                case 4:
                 case 6:
                     strcpy(name,"add\0");
                     break;
@@ -188,30 +195,27 @@ void instruction_name_finder(unsigned int inst, unsigned int function, char* nam
             break;
                 case 2:
                     strcpy(name,"j\0");
+                    type = 2;
                     break;
                 case 4:
                     strcpy(name,"addi\0");
+                    type = 1;
                     break;
                 case 8:
                     strcpy(name,"beq\0");
+                    type = 2;
                     break;
                 case 11:
                     strcpy(name,"lw\0");
+                    type = 1;
                     break;
                 case 15:
                     strcpy(name,"sw\0");
+                    type = 1;
                     break;
                 default:
                     exit(1);
                     break;
-    }
-
-    if (inst == 6, 1, 3, 5, 7){
-        printf("INSTRUCAO DE TIPO R\n");
-    } else if (inst == 4, 11, 15){
-        printf("INSTRUCAO DE TIPO I\n");
-    } else if (inst == 2, 8){
-        printf("INSTRUCAO DE TIPO J\n");
     }
     return;
 }
