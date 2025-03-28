@@ -6,7 +6,6 @@
 
 void* memCheck(void* a);
 
-
 typedef struct sgnp{
     bool Mem2Reg;
     bool MemWrite;
@@ -37,8 +36,7 @@ typedef struct codigo{
 inst *cria_mem();
 void ler_mem(inst *mem_lida);
 int binario_para_decimal(char binario[], int inicio, int fim);
-int traducaoprainstruc();
-
+control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function);
 
 int main(){
     inst *inst_mem = cria_mem();
@@ -53,6 +51,7 @@ int main(){
     int y = binario_para_decimal(inst_mem[1].instrucao,0,15);
     control_signal* csignal = uc((a>>12)&15,a&7);
     printf("%s\n",csignal->name);
+    control_signal* cusignal = regis((a>>9)&7,(a>>6)&7, (a>>3)&7, (a>>0)&7);
 
     return 0;
 }
@@ -117,6 +116,13 @@ int binario_para_decimal(char binario[], int inicio, int fim) {
 
     return decimal;
 };
+
+control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function){
+    printf("rs:%i\n", rs);
+    printf("rt:%i\n", rt);
+    printf("rd:%i\n", rd);
+    printf("function:%i\n", function);
+}
 
 
 
@@ -198,6 +204,14 @@ void instruction_name_finder(unsigned int inst, unsigned int function, char* nam
                 default:
                     exit(1);
                     break;
+    }
+
+    if (inst == 6, 1, 3, 5, 7){
+        printf("INSTRUCAO DE TIPO R\n");
+    } else if (inst == 4, 11, 15){
+        printf("INSTRUCAO DE TIPO I\n");
+    } else if (inst == 2, 8){
+        printf("INSTRUCAO DE TIPO J\n");
     }
     return;
 }
