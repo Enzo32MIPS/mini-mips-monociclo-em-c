@@ -19,8 +19,12 @@ typedef struct sgnp{
     bool jump;
     char name[5];
 }control_signal;
+
+
 control_signal* uc(unsigned int inst, unsigned int function);
 void instruction_name_finder(unsigned int inst, unsigned int function, char* name);
+
+
 
 typedef struct codigo{
     char instrucao[20];
@@ -38,24 +42,56 @@ void ler_mem(inst *mem_lida);
 int binario_para_decimal(char binario[], int inicio, int fim);
 control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function, char *instruction);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 int main(){
     inst *inst_mem = cria_mem();
     ler_mem(inst_mem);
+    unsigned int a;
+
 
     for(int i=0; i<10;i++){
-        printf("Linha %i: %s", i+1, inst_mem[i].instrucao);
+        a = binario_para_decimal(inst_mem[i].instrucao,0,15);
+
+
+
+        control_signal* csignal = uc((a>>12)&15,a&7);
+        printf("%s\n",csignal->name);
+        control_signal* cusignal = regis(a,a,a,a,inst_mem[i].instrucao);
+
+        printf("\n\n");
     }
 
-    unsigned int a = binario_para_decimal(inst_mem[0].instrucao,0,15);
-
-    int y = binario_para_decimal(inst_mem[0].instrucao,0,15);
-
-    control_signal* csignal = uc((a>>12)&15,a&7);
-    printf("%s\n",csignal->name);
-    control_signal* cusignal = regis(a,a,a,a,inst_mem[0].instrucao);
 
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 inst *cria_mem(){
 
