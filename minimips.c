@@ -18,6 +18,9 @@ typedef struct sgnp{
     bool RegWrite;
     bool jump;
     char name[5];
+
+    bool overflow;
+
 }control_signal;
 
 
@@ -39,9 +42,11 @@ typedef struct codigo{
 
 inst *cria_mem();
 void ler_mem(inst *mem_lida);
-int binario_para_decimal(char binario[], int inicio, int fim);
+int binario_para_decimal(char binario[], int inicio, int fim, int complemento2);
 control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function, char *instruction);
 
+int ula(int reg1, int reg2, control_signal *controle);
+int mux(int valor1, int valor2, bool controle);
 
 
 
@@ -62,7 +67,7 @@ int main(){
 
 
     for(int i=0; i<10;i++){
-        a = binario_para_decimal(inst_mem[i].instrucao,0,15);
+        a = binario_para_decimal(inst_mem[i].instrucao,0,15,0);
 
 
 
@@ -135,20 +140,41 @@ void ler_mem(inst *mem_lida){
     fclose(arq);
 };
 
-int binario_para_decimal(char binario[], int inicio, int fim) {
+int binario_para_decimal(char binario[], int inicio, int fim, int complemento2) {
     int decimal = 0;
-
     int tamanho = strlen(binario);
+
     if (inicio < 0 || fim >= tamanho || inicio > fim) {
         printf("Índices inválidos.\n");
         return -1;
-    };
+    }
 
-    for (int i = inicio; i <= fim; i++) {
-        if (binario[i] == '1') {
-            decimal += pow(2, fim - i);
-        };
-    };
+    if (complemento2 == 1) {
+
+        if (binario[inicio] == '1') {
+            int inversao = 0;
+            for (int i = inicio; i <= fim; i++) {
+                if (binario[i] == '0') {
+                    inversao += pow(2, fim - i);
+                }
+            }
+
+            decimal = inversao + 1;
+            decimal = -decimal;
+        } else {
+            for (int i = inicio; i <= fim; i++) {
+                if (binario[i] == '1') {
+                    decimal += pow(2, fim - i);
+                }
+            }
+        }
+    } else {
+        for (int i = inicio; i <= fim; i++) {
+            if (binario[i] == '1') {
+                decimal += pow(2, fim - i);
+            }
+        }
+    }
 
     return decimal;
 };
@@ -161,10 +187,10 @@ control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigne
         printf("rs: %i\t rt: %i\t rd: %i\t function: %i\n",((rs>>9)&7),((rt>>6)&7),((rd>>3)&7),((function>>0)&7));
     } else if (type == 1){
         printf("INSTRUCAO DE TIPO I\n");
-        printf("rs: %i\trt: %i\tendereco: %i\n",((rs>>9)&7),((rt>>6)&7),((function>>0)&63));
+        printf("rs: %i\trt: %i\timediato: %i\n",((rs>>9)&7),((rt>>6)&7),((function>>0)&63));
     } else if (type == 2){
         printf("INSTRUCAO DE TIPO J\n");
-        printf("endereco: %i\n",((function>>0)&2047));
+        printf("imediato: %i\n",((function>>0)&2047));
     }
 }
 
@@ -262,3 +288,61 @@ void* memCheck(void* a){
     }
     return a;
 }
+
+int ula(int reg1, int reg2, control_signal *controle){
+    switch(controle->AluFunc){
+        case 0:
+
+            if(reg1+reg2>127 || reg1+reg2<-128){
+                controle->overflow = 1;
+            }
+            else{
+                return reg1 + reg2;
+            };
+
+            break;
+        case 1:
+
+            if(reg1==reg2){
+                controle->overflow = 1;
+            }
+            else{
+                controle->overflow = 0;
+            }
+
+            break;
+        case 2:
+
+            if(reg1+reg2>127 || reg1+reg2<-128){
+                controle->overflow = 1;
+            }
+            else{
+                return reg1 + reg2;
+            };
+
+            break;
+        case 4:
+
+            return reg1 & reg2;
+
+            break;
+        case 5:
+            return reg1 | reg2;
+
+            break;
+    }
+
+
+};
+
+int mux(int valor1, int valor2, bool controle){
+    switch(controle){
+        case 0:
+            return valor1;
+            break;
+        case 1:
+            return valor2;
+            break;
+    };
+
+};
