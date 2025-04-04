@@ -6,8 +6,6 @@
 
 void* memCheck(void* a);
 
-int type;
-
 typedef struct sgnp{
     bool Mem2Reg;
     bool MemWrite;
@@ -35,68 +33,40 @@ typedef struct codigo{
     int rs;
     int rd;
     int rt;
-    int imediato;
+    int imm;
     int funct;
     char tipo;
 }inst;
 
+int type;
+
 inst *cria_mem();
 void ler_mem(inst *mem_lida);
 int binario_para_decimal(char binario[], int inicio, int fim, int complemento2);
-control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function, char *instruction);
+control_signal* regis(unsigned int a, char *instruction);
 
 int ula(int reg1, int reg2, control_signal *controle);
 int mux(int valor1, int valor2, bool controle);
-
-
-
-
-
-
-
-
-
-
-
-
+int *BancoReg(int rd, int rs, int rt, int imm, bool RegWrite, control_signal *controle);
+int *decod(unsigned int a, bool RegWrite, control_signal *controle);
 
 int main(){
     inst *inst_mem = cria_mem();
     ler_mem(inst_mem);
     unsigned int a;
 
-
-    for(int i=0; i<10;i++){
-        a = binario_para_decimal(inst_mem[i].instrucao,0,15,0);
-
-
+    /*for(int i=0; i<10;i++){}*/
+        a = binario_para_decimal(inst_mem[0].instrucao,0,15,0);
 
         control_signal* csignal = uc((a>>12)&15,a&7);
         printf("%s\n",csignal->name);
-        control_signal* cusignal = regis(a,a,a,a,inst_mem[i].instrucao);
+        int *regpon = decod(a, csignal->RegWrite, csignal);
 
         printf("\n\n");
-    }
 
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 inst *cria_mem(){
 
@@ -179,22 +149,48 @@ int binario_para_decimal(char binario[], int inicio, int fim, int complemento2) 
     return decimal;
 };
 
-control_signal* regis(unsigned int rs, unsigned int rt, unsigned int rd, unsigned int function, char *instruction){
+int *decod(unsigned int a, bool RegWrite, control_signal *controle){
 
-    printf("%s",instruction);
+    int rs=0, rd=0, rt=0, funct=0, imm=0, opcode=0;
+
+    opcode = ((a>>12)&15);
     if (type == 0){
         printf("INSTRUCAO DE TIPO R\n");
-        printf("rs: %i\t rt: %i\t rd: %i\t function: %i\n",((rs>>9)&7),((rt>>6)&7),((rd>>3)&7),((function>>0)&7));
+        printf("opcode: %i\trs: %i\t rt: %i\t rd: %i\t function: %i\n",((a>>12)&15),((a>>9)&7),((a>>6)&7),((a>>3)&7),((a>>0)&7));
+        rs = ((a>>9)&7);
+        rt = ((a>>6)&7);
+        rd = ((a>>3)&7);
+        funct = ((a>>0)&7);
     } else if (type == 1){
         printf("INSTRUCAO DE TIPO I\n");
-        printf("rs: %i\trt: %i\timediato: %i\n",((rs>>9)&7),((rt>>6)&7),((function>>0)&63));
+        printf("opcode: %i\trs: %i\trt: %i\timediato: %i\n",((a>>12)&15),((a>>9)&7),((a>>6)&7),((a>>0)&63));
+        rs = ((a>>9)&7);
+        rt = ((a>>6)&7);
+        rd = ((a>>6)&7);
+        imm = ((a>>0)&63);
     } else if (type == 2){
         printf("INSTRUCAO DE TIPO J\n");
-        printf("imediato: %i\n",((function>>0)&2047));
+        printf("opcode: %i\timediato: %i\n",((a>>26)&63),((a>>0)&2047));
+        imm = (a&255);
     }
+    int *result = BancoReg(rd,rs,rt,imm,RegWrite,controle);
+    return result;
 }
 
+int *BancoReg(int rd, int rs, int rt, int imm, bool RegWrite, control_signal *controle){
 
+    int reg[8];
+    int *regpon = reg;
+
+    if (RegWrite == true && type == 0){
+        reg[rd] = ula(rs,rt,controle);
+    }
+    if (RegWrite == true && type == 1){
+        reg[rd] = ula(rs,imm,controle);
+    }
+
+    return regpon;
+}
 
 control_signal* uc(unsigned int inst, unsigned int function){
     control_signal* result=(control_signal*)memCheck(malloc(sizeof(control_signal)));
@@ -255,29 +251,29 @@ void instruction_name_finder(unsigned int inst, unsigned int function, char* nam
                     break;
             }
             break;
-                case 2:
-                    strcpy(name,"j\0");
-                    type = 2;
-                    break;
-                case 4:
-                    strcpy(name,"addi\0");
-                    type = 1;
-                    break;
-                case 8:
-                    strcpy(name,"beq\0");
-                    type = 2;
-                    break;
-                case 11:
-                    strcpy(name,"lw\0");
-                    type = 1;
-                    break;
-                case 15:
-                    strcpy(name,"sw\0");
-                    type = 1;
-                    break;
-                default:
-                    exit(1);
-                    break;
+        case 2:
+            strcpy(name,"j\0");
+            type = 2;
+            break;
+        case 4:
+            strcpy(name,"addi\0");
+            type = 1;
+            break;
+        case 8:
+            strcpy(name,"beq\0");
+            type = 1;
+            break;
+        case 11:
+            strcpy(name,"lw\0");
+            type = 1;
+            break;
+        case 15:
+            strcpy(name,"sw\0");
+            type = 1;
+            break;
+        default:
+            exit(1);
+            break;
     }
     return;
 }
@@ -290,15 +286,17 @@ void* memCheck(void* a){
 }
 
 int ula(int reg1, int reg2, control_signal *controle){
+
+    bool zero_flag;
     switch(controle->AluFunc){
         case 0:
 
             if(reg1+reg2>127 || reg1+reg2<-128){
                 controle->overflow = 1;
             }
-            else{
-                return reg1 + reg2;
-            };
+            if(reg1|reg2==0) zero_flag=1; else zero_flag=0;
+            return reg1 + reg2;
+
 
             break;
         case 1:
@@ -316,17 +314,18 @@ int ula(int reg1, int reg2, control_signal *controle){
             if(reg1+reg2>127 || reg1+reg2<-128){
                 controle->overflow = 1;
             }
-            else{
-                return reg1 + reg2;
-            };
+
+            if(reg1|reg2==0) zero_flag=1; else zero_flag=0;
+            return reg1 + reg2;
 
             break;
         case 4:
-
+            if(reg1|reg2==0) zero_flag=1; else zero_flag=0;
             return reg1 & reg2;
 
             break;
         case 5:
+            if(reg1|reg2==0) zero_flag=1; else zero_flag=0;
             return reg1 | reg2;
 
             break;
@@ -346,3 +345,4 @@ int mux(int valor1, int valor2, bool controle){
     };
 
 };
+
