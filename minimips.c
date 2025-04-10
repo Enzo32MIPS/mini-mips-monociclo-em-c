@@ -1,72 +1,124 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include "minimips.h"
 
-void* memCheck(void* a);
+#include <termios.h>
 
-typedef struct sgnp{
-    bool Mem2Reg;
-    bool MemWrite;
-    bool branch;
-    int AluFunc;
-    bool AluSrc;
-    bool RegDst;
-    bool RegWrite;
-    bool jump;
-    char name[5];
+int main(int argc, char** argv){
 
-    bool overflow;
+    if(argc<2) return 1;
 
-}control_signal;
+    int8_t reg[8] = {0};
+    inst instruction_mem[256] = {0};
+    int8_t data_mem[256] = {0};
+    uint8_t pc=0;
+	control_signal* csignal;
+    int8_t aluIn, result;
+	ula_signal* usignal;
 
+    ler_mem(instruction_mem,argv[1]);
 
-control_signal* uc(unsigned int inst, unsigned int function);
-void instruction_name_finder(unsigned int inst, unsigned int function, char* name);
+	char casee=0;
+	do{
+		switch(casee){
+			case 'n':
+			    decod(instruction_mem+pc);
 
+				csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
 
+		 		if( csignal->RegDst==0 ) instruction_mem[pc].rd = instruction_mem[pc].rt;
 
-typedef struct codigo{
-    char instrucao[20];
-    int opcode;
-    int rs;
-    int rd;
-    int rt;
-    int imm;
-    int funct;
-    char tipo;
-}inst;
+			    if( !csignal->AluSrc ) aluIn = reg[instruction_mem[pc].rt];
+				else aluIn = instruction_mem[pc].imm;
 
-int type;
+		    	usignal = ula((int16_t)reg[instruction_mem[pc].rs],(int16_t)aluIn,csignal->AluFunc);
 
-inst *cria_mem();
-void ler_mem(inst *mem_lida);
-int binario_para_decimal(char binario[], int inicio, int fim, int complemento2);
-control_signal* regis(unsigned int a, char *instruction);
+				if( csignal->MemWrite == 1 ) data_mem[usignal->result] = reg[instruction_mem[pc].rd];
 
-int ula(int reg1, int reg2, control_signal *controle);
-int mux(int valor1, int valor2, bool controle);
-int *BancoReg(int rd, int rs, int rt, int imm, bool RegWrite, control_signal *controle);
-int *decod(unsigned int a, bool RegWrite, control_signal *controle);
+				if( !csignal->Mem2Reg ) result = data_mem[usignal->result];
+				else result = usignal->result;
 
-int main(){
-    inst *inst_mem = cria_mem();
-    ler_mem(inst_mem);
-    unsigned int a;
+				if( csignal->RegWrite == 1 ) reg[instruction_mem[pc].rd] = result;
 
-    /*for(int i=0; i<10;i++){}*/
-        a = binario_para_decimal(inst_mem[0].instrucao,0,15,0);
+				if( csignal->jump == 1 ) pc = instruction_mem[pc].addr;
+				else pc++;
 
-        control_signal* csignal = uc((a>>12)&15,a&7);
-        printf("%s\n",csignal->name);
-        int *regpon = decod(a, csignal->RegWrite, csignal);
+				if( csignal->branch && usignal->zero_flag ) pc += instruction_mem[pc].imm;
 
-        printf("\n\n");
+				free(csignal);
+				free(usignal);
+			break;
 
+			case 'm':
+				for(int i=0;i<16;i++){
+					for(int j=0;j<16;j++){
+						printf("|%i",data_mem[16*i+j]);
+					}
+					printf("|\n");
+				}
+				printf("\n");
+			break;
 
+			case 'r':
+				for(int i=0;i<16;i++){
+					printf("|%i",reg[i]);
+				}
+				printf("\n\n");
+			break;
+
+            case 'i':
+                for(int i=0;i<256;i++){
+                    decod(instruction_mem+i);
+                    csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
+                    printf("Num:%u | %s ",i, csignal->name);
+                    if( !csignal->jump ){
+                        printf("$%u $%u ",instruction_mem[i].rs,instruction_mem[i].rt);
+                        if( !csignal->RegDst ) printf("imm %i\n", instruction_mem[i].imm);
+                        else printf("$%u\n",instruction_mem[i].rd);
+                    }
+                    else printf("%u\n",instruction_mem[i].addr);
+                    free(csignal);
+                }
+            break;
+
+            case 's':
+                decod(instruction_mem+pc);
+                csignal = uc(instruction_mem[pc].opcode,instruction_mem[pc].funct);
+                printf("PC:%u | %s ",pc, csignal->name);
+                if( !csignal->jump ){
+                    printf("$%u $%u ",instruction_mem[pc].rs,instruction_mem[pc].rt);
+                    if( !csignal->RegDst ) printf("imm %i\n", instruction_mem[pc].imm);
+                    else printf("$%u\n",instruction_mem[pc].rd);
+                }
+                else printf("%u\n",instruction_mem[pc].addr);
+                free(csignal);
+			break;
+		}
+		printf("n)step\nm)show data memory\nr)show registers\ni)show all instructions\ns)show intruction to run\n0)quit\n:");
+		do scanf("%c",&casee); while(casee=='\n');
+	}while(casee!='0');
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 inst *cria_mem(){
 
@@ -92,20 +144,21 @@ inst *cria_mem(){
     return mem;
 };
 
-void ler_mem(inst *mem_lida){
+void ler_mem(inst *mem_lida, const char* name){
     FILE *arq;
-    arq = fopen("instrucoes.mem","r");
+    arq = fopen(name,"r");
+    char temp[20];
+
     if(arq == NULL){
         printf("ERRO NA LEITURA DA MEMORIA DE INSTRUCOES\n");
-        exit(-1);
+        exit(2);
     };
 
-    int i=0;
-
-    while(!feof(arq)){
-        fgets(mem_lida[i].instrucao,sizeof(mem_lida->instrucao),arq);
-        i++;
+    for(int i=0;!feof(arq);i++){
+        fgets(temp,sizeof(char[20]),arq);
+        mem_lida[i].instrucao = (uint16_t)binario_para_decimal(temp,0,15,0);
     }
+
 
     fclose(arq);
 };
@@ -125,7 +178,7 @@ int binario_para_decimal(char binario[], int inicio, int fim, int complemento2) 
             int inversao = 0;
             for (int i = inicio; i <= fim; i++) {
                 if (binario[i] == '0') {
-                    inversao += pow(2, fim - i);
+                    inversao += 1<<(fim - i);
                 }
             }
 
@@ -134,14 +187,14 @@ int binario_para_decimal(char binario[], int inicio, int fim, int complemento2) 
         } else {
             for (int i = inicio; i <= fim; i++) {
                 if (binario[i] == '1') {
-                    decimal += pow(2, fim - i);
+                    decimal += 1<<(fim - i);
                 }
             }
         }
     } else {
         for (int i = inicio; i <= fim; i++) {
             if (binario[i] == '1') {
-                decimal += pow(2, fim - i);
+                decimal += 1<<(fim - i);
             }
         }
     }
@@ -149,47 +202,23 @@ int binario_para_decimal(char binario[], int inicio, int fim, int complemento2) 
     return decimal;
 };
 
-int *decod(unsigned int a, bool RegWrite, control_signal *controle){
+void decod(inst* a){
 
-    int rs=0, rd=0, rt=0, funct=0, imm=0, opcode=0;
+    union{
+        uint8_t u;
+        int8_t s;
+    }conv;
 
-    opcode = ((a>>12)&15);
-    if (type == 0){
-        printf("INSTRUCAO DE TIPO R\n");
-        printf("opcode: %i\trs: %i\t rt: %i\t rd: %i\t function: %i\n",((a>>12)&15),((a>>9)&7),((a>>6)&7),((a>>3)&7),((a>>0)&7));
-        rs = ((a>>9)&7);
-        rt = ((a>>6)&7);
-        rd = ((a>>3)&7);
-        funct = ((a>>0)&7);
-    } else if (type == 1){
-        printf("INSTRUCAO DE TIPO I\n");
-        printf("opcode: %i\trs: %i\trt: %i\timediato: %i\n",((a>>12)&15),((a>>9)&7),((a>>6)&7),((a>>0)&63));
-        rs = ((a>>9)&7);
-        rt = ((a>>6)&7);
-        rd = ((a>>6)&7);
-        imm = ((a>>0)&63);
-    } else if (type == 2){
-        printf("INSTRUCAO DE TIPO J\n");
-        printf("opcode: %i\timediato: %i\n",((a>>26)&63),((a>>0)&2047));
-        imm = (a&255);
-    }
-    int *result = BancoReg(rd,rs,rt,imm,RegWrite,controle);
-    return result;
-}
-
-int *BancoReg(int rd, int rs, int rt, int imm, bool RegWrite, control_signal *controle){
-
-    int reg[8];
-    int *regpon = reg;
-
-    if (RegWrite == true && type == 0){
-        reg[rd] = ula(rs,rt,controle);
-    }
-    if (RegWrite == true && type == 1){
-        reg[rd] = ula(rs,imm,controle);
-    }
-
-    return regpon;
+    a->opcode = ((a->instrucao>>12)&15);
+    a->rs = ((a->instrucao>>9)&7);
+    a->rt = ((a->instrucao>>6)&7);
+    a->rd = ((a->instrucao>>3)&7);
+	conv.u = (a->instrucao)&63;
+	if( (conv.u&32) == 32) conv.u = conv.u | 192;
+	a->imm = conv.s;
+    a->funct = ((a->instrucao>>0)&7);
+	a->addr = ((a->instrucao>>0)&255);
+    return;
 }
 
 control_signal* uc(unsigned int inst, unsigned int function){
@@ -206,6 +235,10 @@ control_signal* uc(unsigned int inst, unsigned int function){
 
     if((inst&5)!=0){result->AluSrc=true;}
     else{result->AluSrc=false;}
+
+//regdst
+	if((inst&12)==0) result->RegDst=true;
+	else result->RegDst;
 
     if(((inst&10)==0)||((inst&5)==1)){result->RegWrite=true;}
     else{result->RegWrite=false;}
@@ -228,13 +261,16 @@ control_signal* uc(unsigned int inst, unsigned int function){
     instruction_name_finder(inst,function,result->name);
     return result;
 }
+
 void instruction_name_finder(unsigned int inst, unsigned int function, char* name){
 
     switch(inst){
         case 0:
-            type = 0;
             switch(function){
-                case 6:
+                case 0:
+				case 2:
+				case 4:
+				case 6:
                     strcpy(name,"add\0");
                     break;
                 case 1:
@@ -253,23 +289,18 @@ void instruction_name_finder(unsigned int inst, unsigned int function, char* nam
             break;
         case 2:
             strcpy(name,"j\0");
-            type = 2;
             break;
         case 4:
             strcpy(name,"addi\0");
-            type = 1;
             break;
         case 8:
             strcpy(name,"beq\0");
-            type = 1;
             break;
         case 11:
             strcpy(name,"lw\0");
-            type = 1;
             break;
         case 15:
             strcpy(name,"sw\0");
-            type = 1;
             break;
         default:
             exit(1);
@@ -285,56 +316,42 @@ void* memCheck(void* a){
     return a;
 }
 
-int ula(int reg1, int reg2, control_signal *controle){
+ula_signal* ula(int16_t reg1, int16_t reg2, uint8_t funct){
 
-    bool zero_flag;
-    switch(controle->AluFunc){
+    ula_signal* result=calloc(1,sizeof(ula_signal));
+	result->overflow=0;
+
+    switch(funct){
         case 0:
-
-            if(reg1+reg2>127 || reg1+reg2<-128){
-                controle->overflow = 1;
-            }
-            if(reg1|reg2==0) zero_flag=1; else zero_flag=0;
-            return reg1 + reg2;
-
-
-            break;
-        case 1:
-
-            if(reg1==reg2){
-                controle->overflow = 1;
-            }
-            else{
-                controle->overflow = 0;
-            }
-
-            break;
         case 2:
+        case 3:
+        case 6:
+            if(reg1+reg2>127 || reg1+reg2<-128) result->overflow = 1;
+            result->result = (int8_t) reg1 + reg2;
+        break;
 
-            if(reg1+reg2>127 || reg1+reg2<-128){
-                controle->overflow = 1;
-            }
+        case 1:
+            if(reg1-reg2>127 || reg1-reg2<-128) result->overflow = 1;
+            result->result = (int8_t) reg1 - reg2;
+        break;
 
-            if(reg1|reg2==0) zero_flag=1; else zero_flag=0;
-            return reg1 + reg2;
-
-            break;
         case 4:
-            if(reg1|reg2==0) zero_flag=1; else zero_flag=0;
-            return reg1 & reg2;
+            result->result = (int8_t) reg1 & reg2;
+        break;
 
-            break;
         case 5:
-            if(reg1|reg2==0) zero_flag=1; else zero_flag=0;
-            return reg1 | reg2;
+            result->result = (int8_t) reg1 | reg2;
+        break;
 
-            break;
+        case 7:
+            result->result = 0;
+        break;
     }
-
-
+    result->zero_flag = result->result!=0;
+    return result;
 };
 
-int mux(int valor1, int valor2, bool controle){
+/*int mux(int valor1, int valor2, bool controle){
     switch(controle){
         case 0:
             return valor1;
@@ -345,4 +362,4 @@ int mux(int valor1, int valor2, bool controle){
     };
 
 };
-
+*/
