@@ -19,12 +19,14 @@ int main(int argc, char** argv){
     int8_t aluIn, result;
 	ula_signal* usignal;
 
+	char temp[30];
+
     ler_mem(instruction_mem,argv[1]);
 
 	char casee=0;
 	do{
 		switch(casee){
-			case 'n':
+			case '1':
 			    decod(instruction_mem+pc);
 
 				csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
@@ -52,7 +54,7 @@ int main(int argc, char** argv){
 				free(usignal);
 			break;
 
-			case 'm':
+			case '2':
 				for(int i=0;i<16;i++){
 					for(int j=0;j<16;j++){
 						printf("|%i",data_mem[16*i+j]);
@@ -62,14 +64,14 @@ int main(int argc, char** argv){
 				printf("\n");
 			break;
 
-			case 'r':
-				for(int i=0;i<16;i++){
+			case '3':
+				for(int i=0;i<8;i++){
 					printf("|%i",reg[i]);
 				}
 				printf("\n\n");
 			break;
 
-            case 'i':
+            case '4':
                 for(int i=0;i<256;i++){
                     decod(instruction_mem+i);
                     csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
@@ -84,7 +86,7 @@ int main(int argc, char** argv){
                 }
             break;
 
-            case 's':
+            case '5':
                 decod(instruction_mem+pc);
                 csignal = uc(instruction_mem[pc].opcode,instruction_mem[pc].funct);
                 printf("PC:%u | %s ",pc, csignal->name);
@@ -96,8 +98,30 @@ int main(int argc, char** argv){
                 else printf("%u\n",instruction_mem[pc].addr);
                 free(csignal);
 			break;
+
+			case '6':
+				asm_code(instruction_mem, argv[1]);
+			break;
+
+			case '7':
+				printf("Digite nome do arquivo: ");
+				do fgets(temp,29,stdin); while( !((strcmp(temp,"\n"))||(strcmp(temp,"\n\0"))) );
+				temp[strcspn(temp,"\n")]='\0';
+
+				read_dat(temp, data_mem);
+
+			break;
+
+			case '8':
+				printf("Digite nome do arquivo: ");
+				do fgets(temp,29,stdin); while( !((strcmp(temp,"\n"))||(strcmp(temp,"\n\0"))) );
+				temp[strcspn(temp,"\n")]='\0';
+
+				write_dat(temp, data_mem);
+
+			break;
 		}
-		printf("n)step\nm)show data memory\nr)show registers\ni)show all instructions\ns)show intruction to run\n0)quit\n:");
+		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load memory data\n8)store memory data\n0)quit\n:");
 		do scanf("%c",&casee); while(casee=='\n');
 	}while(casee!='0');
     return 0;
@@ -120,29 +144,7 @@ int main(int argc, char** argv){
 
 
 
-inst *cria_mem(){
 
-    FILE *arq;
-    arq = fopen("instrucoes.mem","r");
-    if(arq == NULL){
-        printf("ERRO NA LEITURA DA MEMORIA DE INSTRUCOES\n");
-        exit(-1);
-    };
-
-    int i=0;
-    char temp[30];
-
-    while(!feof(arq)){
-        fgets(temp,30,arq);
-        i++;
-    }
-
-    inst *mem = (inst*)malloc(sizeof(inst)*i);
-
-    fclose(arq);
-
-    return mem;
-};
 
 void ler_mem(inst *mem_lida, const char* name){
     FILE *arq;
@@ -351,15 +353,70 @@ ula_signal* ula(int16_t reg1, int16_t reg2, uint8_t funct){
     return result;
 };
 
-/*int mux(int valor1, int valor2, bool controle){
-    switch(controle){
-        case 0:
-            return valor1;
-            break;
-        case 1:
-            return valor2;
-            break;
+void asm_code(inst *instruction_mem,const char *memo){
+    char temp[30];
+    control_signal *csignal;
+	int cont=0;
+
+	printf("Digite nome do arquivo .asm: ");
+	scanf("%s",temp);
+
+    FILE *arq = fopen(temp,"w");
+	FILE *mem= fopen(memo,"r");
+
+
+    if(mem == NULL){
+        printf("ERRO NA LEITURA DA MEMORIA DE INSTRUCOES\n");
+        exit(2);
     };
 
-};
-*/
+
+	while(!feof(mem)){
+		fgets(temp,20,mem);
+		cont++;
+	}
+
+        for(int i=0;i < cont; i++){
+            decod(instruction_mem+i);
+                    csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
+                    fprintf(arq, "%s ", csignal->name);
+                    if( !csignal->jump ){
+                        fprintf(arq, "$t%u, $t%u, ",instruction_mem[i].rs,instruction_mem[i].rt);
+                        if( !csignal->RegDst ) fprintf(arq, "%i\n", instruction_mem[i].imm);
+                        else fprintf(arq,"$t%u\n",instruction_mem[i].rd);
+                    }
+                    else fprintf(arq, "%u\n",instruction_mem[i].addr);
+        }
+
+		fclose(arq);
+		fclose(mem);
+		free(csignal);
+
+}
+
+void read_dat(const char* name, int8_t* a){
+	FILE* buffer = fopen(name,"r");
+	if(!buffer) exit(2);
+	for(int i=0;i<16;i++){
+		for(int j=0;j<16;j++){
+			fscanf(buffer,"|%i",&a[16*i+j]);
+		}
+		fscanf(buffer,"|\n");
+	}
+	fclose(buffer);
+	return;
+}
+
+void write_dat(const char* name, int8_t* a){
+	FILE *buffer = fopen(name,"w");
+	if(!buffer) exit(2);
+	for(int i=0;i<16;i++){
+		for(int j=0;j<16;j++){
+			fprintf(buffer,"|%i",a[16*i+j]);
+		}
+		fprintf(buffer,"|\n");
+	}
+	fprintf(buffer,"\n");
+	fclose(buffer);
+	return;
+}

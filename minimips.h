@@ -34,9 +34,11 @@ typedef struct{
 
 int type;
 
-inst *cria_mem();
 void ler_mem(inst *mem_lida, const char* name);
 int binario_para_decimal(char binario[], int inicio, int fim, int complemento2);
 ula_signal* ula(int16_t reg1, int16_t reg2, uint8_t funct);
 //int mux(int valor1, int valor2, bool controle);
 void decod(inst* a);
+void asm_code(inst *instruction_mem, const char *memo);
+void read_dat(const char* name, int8_t* a);
+void write_dat(const char* name, int8_t* a);
