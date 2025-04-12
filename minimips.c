@@ -121,7 +121,7 @@ int main(int argc, char** argv){
 
 			break;
 		}
-		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load memory data\n8)store memory data\n0)quit\n:");
+		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load data memory data\n8)store data memory data\n0)quit\n:");
 		do scanf("%c",&casee); while(casee=='\n');
 	}while(casee!='0');
     return 0;
