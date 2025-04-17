@@ -30,6 +30,31 @@ int main(int argc, char** argv){
 
                 pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, regtmp, resulttmp, data_mem_tmp);
 
+                printf("\n");
+                for(int i=0;i<16;i++){
+                    for(int j=0;j<16;j++){
+                        printf("|%i",data_mem[16*i+j]);
+                    }
+                    printf("|\n");
+                }
+                printf("\n");
+
+                for(int i=0;i<8;i++){
+                    printf("|%i",reg[i]);
+                }
+                printf("\n\n");
+
+                decod(instruction_mem+pc);
+                csignal = uc(instruction_mem[pc].opcode,instruction_mem[pc].funct);
+                printf("PC:%u | %s ",pc, csignal->name);
+                if( !csignal->jump ){
+                    printf("$%u $%u ",instruction_mem[pc].rs,instruction_mem[pc].rt);
+                    if( !csignal->RegDst ) printf("imm %i\n", instruction_mem[pc].imm);
+                    else printf("$%u\n",instruction_mem[pc].rd);
+                }
+                else printf("%u\n",instruction_mem[pc].addr);
+                free(csignal);
+
 			break;
 
 			case '2':
