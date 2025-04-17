@@ -27,31 +27,9 @@ int main(int argc, char** argv){
 	do{
 		switch(casee){
 			case '1':
-			    decod(instruction_mem+pc);
 
-				csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
+                pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal);
 
-		 		if( csignal->RegDst==0 ) instruction_mem[pc].rd = instruction_mem[pc].rt;
-
-			    if( !csignal->AluSrc ) aluIn = reg[instruction_mem[pc].rt];
-				else aluIn = instruction_mem[pc].imm;
-
-		    	usignal = ula((int16_t)reg[instruction_mem[pc].rs],(int16_t)aluIn,csignal->AluFunc);
-
-				if( csignal->MemWrite == 1 ) data_mem[usignal->result] = reg[instruction_mem[pc].rd];
-
-				if( !csignal->Mem2Reg ) result = data_mem[usignal->result];
-				else result = usignal->result;
-
-				if( csignal->RegWrite == 1 ) reg[instruction_mem[pc].rd] = result;
-
-				if( csignal->jump == 1 ) pc = instruction_mem[pc].addr;
-				else pc++;
-
-				if( csignal->branch && usignal->zero_flag ) pc += instruction_mem[pc].imm;
-
-				free(csignal);
-				free(usignal);
 			break;
 
 			case '2':
@@ -120,8 +98,23 @@ int main(int argc, char** argv){
 				write_dat(temp, data_mem);
 
 			break;
+
+            case '9':
+
+                for (int g = 0; g<256; g++){
+                    while(instruction_mem[g].rd != 0 || instruction_mem[g].rt != 0);{
+                            if (((instruction_mem[g].instrucao >> 3)&3) == 2){
+                            pc++;
+                        }
+                        pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal);
+                    }
+                }
+
+
 		}
-		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load data memory data\n8)store data memory data\n0)quit\n:");
+		break;
+
+		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load data memory data\n8)store data memory data\n9)run\n0)quit\n:");
 		do scanf("%c",&casee); while(casee=='\n');
 	}while(casee!='0');
     return 0;
@@ -419,4 +412,35 @@ void write_dat(const char* name, int8_t* a){
 	fprintf(buffer,"\n");
 	fclose(buffer);
 	return;
+}
+
+uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, control_signal *csignal, int8_t aluIn, int8_t result, ula_signal *usignal){
+
+    decod(instruction_mem+pc);
+
+    csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
+
+    if( csignal->RegDst==0 ) instruction_mem[pc].rd = instruction_mem[pc].rt;
+
+    if( !csignal->AluSrc ) aluIn = reg[instruction_mem[pc].rt];
+    else aluIn = instruction_mem[pc].imm;
+
+    usignal = ula((int16_t)reg[instruction_mem[pc].rs],(int16_t)aluIn,csignal->AluFunc);
+
+    if( csignal->MemWrite == 1 ) data_mem[usignal->result] = reg[instruction_mem[pc].rd];
+
+    if( !csignal->Mem2Reg ) result = data_mem[usignal->result];
+    else result = usignal->result;
+
+    if( csignal->RegWrite == 1 ) reg[instruction_mem[pc].rd] = result;
+
+    if( csignal->jump == 1 ) pc = instruction_mem[pc].addr;
+    else pc++;
+
+    if( csignal->branch && usignal->zero_flag ) pc += instruction_mem[pc].imm;
+
+    free(csignal);
+    free(usignal);
+
+    return pc;
 }
