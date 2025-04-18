@@ -9,8 +9,7 @@
 
 int main(int argc, char** argv){
 
-    if(argc<2) return 1;
-
+	char fileN[64];
     int8_t reg[8] = {0}, regtmp[8] = {0};
     inst instruction_mem[256] = {0};
     int8_t data_mem[256] = {0}, data_mem_tmp[256] = {0};
@@ -19,9 +18,12 @@ int main(int argc, char** argv){
     int8_t aluIn, result, resulttmp;
 	ula_signal* usignal;
 
-	char temp[30];
+    if(argc>1){
+		strcpy(fileN,argv[1]);
+	    ler_mem(instruction_mem,fileN);
+	}
 
-    ler_mem(instruction_mem,argv[1]);
+	char temp[30];
 
 	char casee=0;
 	do{
@@ -103,7 +105,7 @@ int main(int argc, char** argv){
 			break;
 
 			case '6':
-				asm_code(instruction_mem, argv[1]);
+				asm_code(instruction_mem, fileN);
 			break;
 
 			case '7':
@@ -141,6 +143,22 @@ int main(int argc, char** argv){
                 }
 
             break;
+
+			case 'a':
+				printf("file name: ");
+				do fgets(fileN,sizeof(char[64]),stdin); while(!strcmp(fileN,"\n\0"));
+				{
+					char* tmpP = strpbrk(fileN,"\n");
+					if(tmpP) *tmpP = '\0';
+				}
+				for(int i=0;i<8;i++){
+					reg[i] = 0;
+				}
+				for(int i=0;i<256;i++){
+					data_mem[i]=0;
+				}
+				ler_mem(instruction_mem,fileN);
+			break;
 
             case 'b':
 
@@ -182,7 +200,7 @@ int main(int argc, char** argv){
                 }
         }
 
-		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load data memory data\n8)store data memory data\n9)run\nb)back\n0)quit\n:");
+		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load data memory data\n8)store data memory data\n9)run\na)load instruction memory\nb)back\n0)quit\n:");
 		do scanf("%c",&casee); while(casee=='\n');
 	}while(casee!='0');
     return 0;
@@ -464,7 +482,7 @@ void read_dat(const char* name, int8_t* a){
 	if(!buffer) exit(2);
 	for(int i=0;i<16;i++){
 		for(int j=0;j<16;j++){
-			fscanf(buffer,"|%i",&a[16*i+j]);
+			fscanf(buffer,"|%i",(int*)&a[16*i+j]);
 		}
 		fscanf(buffer,"|\n");
 	}
