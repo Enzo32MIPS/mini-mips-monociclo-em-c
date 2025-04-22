@@ -128,18 +128,11 @@ int main(int argc, char** argv){
 
             case '9':
 
-                int8_t j_flag = 0;
                 for (int g = 0; g<256; g++){
-                    while(instruction_mem[g].rd != 0 || instruction_mem[g].rt != 0 || instruction_mem[g].funct != 0);{
-                        //if (instruction_mem[g].opcode != 2){
-                            pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, regtmp, resulttmp, data_mem_tmp);
-                        //}
-                        //if (instruction_mem[g].opcode == 2 && j_flag == 0){
-                        //    j_flag = 1;
-                        //    pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal);
-                        //}
-                        //if (instruction_mem[g].opcode == 2 && j_flag == 1){};
+                    if(instruction_mem[g].instrucao == 0){
+                        break;
                     }
+                    pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, regtmp, resulttmp, data_mem_tmp);
                 }
 
             break;
