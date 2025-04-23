@@ -5,8 +5,6 @@
 #include <stdint.h>
 #include "minimips.h"
 
-#include <termios.h>
-
 int main(int argc, char** argv){
 
 	char fileN[64];
@@ -473,11 +471,8 @@ void asm_code(inst *instruction_mem,const char *memo){
 void read_dat(const char* name, int8_t* a){
 	FILE* buffer = fopen(name,"r");
 	if(!buffer) exit(2);
-	for(int i=0;i<16;i++){
-		for(int j=0;j<16;j++){
-			fscanf(buffer,"|%i",(int*)&a[16*i+j]);
-		}
-		fscanf(buffer,"|\n");
+	for(int i=0;i<256;i++){
+			fscanf(buffer,"%i",(int*)&a[16*i+j]);
 	}
 	fclose(buffer);
 	return;
@@ -486,11 +481,8 @@ void read_dat(const char* name, int8_t* a){
 void write_dat(const char* name, int8_t* a){
 	FILE *buffer = fopen(name,"w");
 	if(!buffer) exit(2);
-	for(int i=0;i<16;i++){
-		for(int j=0;j<16;j++){
-			fprintf(buffer,"|%i",a[16*i+j]);
-		}
-		fprintf(buffer,"|\n");
+	for(int i=0;i<256;i++){
+			fprintf(buffer,"%i",a[16*i+j]);
 	}
 	fprintf(buffer,"\n");
 	fclose(buffer);
