@@ -79,8 +79,8 @@ int main(int argc, char** argv){
                     csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
                     printf("Num:%u | %s ",i, csignal->name);
                     if( !csignal->jump ){
-	                    if( !csignal->RegDst ) printf("$%u, $%u, %i\n", instruction_mem[pc].rt, instruction_mem[pc].rs, instruction_mem[pc].imm);
-	                    else printf("$%u, $%u, $%u\n", instruction_mem[pc].rd, instruction_mem[pc].rs, instruction_mem[pc].rt);
+	                    if( !csignal->RegDst ) printf("$%u, $%u, %i\n", instruction_mem[i].rt, instruction_mem[i].rs, instruction_mem[i].imm);
+	                    else printf("$%u, $%u, $%u\n", instruction_mem[i].rd, instruction_mem[i].rs, instruction_mem[i].rt);
                     }
                     else printf("%u\n",instruction_mem[i].addr);
                     free(csignal);
