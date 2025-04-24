@@ -126,11 +126,11 @@ int main(int argc, char** argv){
 
             case '9':
 
-                for (int g = 0; g<256; g++){
-                    if(instruction_mem[g].instrucao == 0){
-                        break;
-                    }
+                int8_t g = 0;
+
+                while(instruction_mem[g].instrucao != 0){
                     pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, regtmp, resulttmp, data_mem_tmp);
+                    g++;
                 }
 
             break;
@@ -176,7 +176,7 @@ int main(int argc, char** argv){
                     break;
 
                     case 11:
-                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc].imm]; //lw
+                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc-1].rd]; //lw
                     break;
 
                     case 15:
@@ -230,10 +230,13 @@ void ler_mem(inst *mem_lida, const char* name){
         exit(2);
     };
 
-    for(int i=0;!feof(arq);i++){
+    int i;
+
+    for(i=0;!feof(arq);i++){
         fgets(temp,sizeof(char[20]),arq);
         mem_lida[i].instrucao = (uint16_t)binario_para_decimal(temp,0,15,0);
     }
+    mem_lida[i].instrucao = 0;
 
 
     fclose(arq);
