@@ -472,7 +472,7 @@ void read_dat(const char* name, int8_t* a){
 	FILE* buffer = fopen(name,"r");
 	if(!buffer) exit(2);
 	for(int i=0;i<256;i++){
-			fscanf(buffer,"%i",(int*)&a[16*i+j]);
+			fscanf(buffer,"%i",(int*)&a[i]);
 	}
 	fclose(buffer);
 	return;
@@ -482,7 +482,7 @@ void write_dat(const char* name, int8_t* a){
 	FILE *buffer = fopen(name,"w");
 	if(!buffer) exit(2);
 	for(int i=0;i<256;i++){
-			fprintf(buffer,"%i",a[16*i+j]);
+			fprintf(buffer,"%i",a[i]);
 	}
 	fprintf(buffer,"\n");
 	fclose(buffer);
