@@ -42,14 +42,14 @@ int main(int argc, char** argv){
                 for(int i=0;i<8;i++){
                     printf("|%i",reg[i]);
                 }
-                printf("\n\n");
+                printf("|\n\n");
 
                 decod(instruction_mem+pc);
                 csignal = uc(instruction_mem[pc].opcode,instruction_mem[pc].funct);
                 printf("PC:%u | %s ",pc, csignal->name);
                 if( !csignal->jump ){
                     printf("$%u $%u ",instruction_mem[pc].rs,instruction_mem[pc].rt);
-                    if( !csignal->RegDst ) printf("imm %i\n", instruction_mem[pc].imm);
+                    if( !csignal->RegDst ) printf("%i\n", instruction_mem[pc].imm);
                     else printf("$%u\n",instruction_mem[pc].rd);
                 }
                 else printf("%u\n",instruction_mem[pc].addr);
@@ -234,7 +234,7 @@ void ler_mem(inst *mem_lida, const char* name){
 
     for(i=0;!feof(arq);i++){
         fgets(temp,sizeof(char[20]),arq);
-        mem_lida[i].instrucao = (uint16_t)binario_para_decimal(temp,0,15,0);
+        if(!feof(arq)) mem_lida[i].instrucao = (uint16_t)binario_para_decimal(temp,0,15,0);
     }
     mem_lida[i].instrucao = 0;
 
@@ -458,7 +458,7 @@ void asm_code(inst *instruction_mem,const char *memo){
                     csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
                     fprintf(arq, "%s ", csignal->name);
                     if( !csignal->jump ){
-                        fprintf(arq, "$t%u, $t%u, ",instruction_mem[i].rs,instruction_mem[i].rt);
+                        fprintf(arq, "$%u, $%u, ",instruction_mem[i].rs,instruction_mem[i].rt);
                         if( !csignal->RegDst ) fprintf(arq, "%i\n", instruction_mem[i].imm);
                         else fprintf(arq,"$t%u\n",instruction_mem[i].rd);
                     }
