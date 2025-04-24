@@ -128,11 +128,9 @@ int main(int argc, char** argv){
 
                 for (int g = 0; g<256; g++){
                     if(instruction_mem[g].instrucao == 0){
-                        printf("ACABOU!!!\n");
                         break;
                     }
                     pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, regtmp, resulttmp, data_mem_tmp);
-                    printf("vez: %i\n", g);
                 }
 
             break;
@@ -178,11 +176,11 @@ int main(int argc, char** argv){
                     break;
 
                     case 11:
-                    reg[instruction_mem[pc].rd] = regtmp[instruction_mem[pc].rt]; //lw
+                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc].imm]; //lw
                     break;
 
                     case 15:
-                    data_mem[resulttmp] = data_mem_tmp[pc]; //sw
+                    data_mem[instruction_mem[pc].imm] = data_mem_tmp[instruction_mem[pc].imm]; //sw
                     break;
 
                     default:
@@ -508,13 +506,12 @@ uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, c
     usignal = ula((int16_t)reg[instruction_mem[pc].rs],(int16_t)aluIn,csignal->AluFunc);
 
     if( csignal->MemWrite == 1 ){
+        data_mem_tmp[usignal->result] = data_mem[usignal->result];
         data_mem[usignal->result] = reg[instruction_mem[pc].rd];
     }
 
     if( !csignal->Mem2Reg ){
-        data_mem_tmp[pc-1] = data_mem[usignal->result];
         result = data_mem[usignal->result];
-        resulttmp = result;
     }else result = usignal->result;
 
     if( csignal->RegWrite == 1 ){
