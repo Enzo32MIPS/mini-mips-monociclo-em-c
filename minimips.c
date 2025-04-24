@@ -48,9 +48,8 @@ int main(int argc, char** argv){
                 csignal = uc(instruction_mem[pc].opcode,instruction_mem[pc].funct);
                 printf("PC:%u | %s ",pc, csignal->name);
                 if( !csignal->jump ){
-                    printf("$%u $%u ",instruction_mem[pc].rs,instruction_mem[pc].rt);
-                    if( !csignal->RegDst ) printf("%i\n", instruction_mem[pc].imm);
-                    else printf("$%u\n",instruction_mem[pc].rd);
+                    if( !csignal->RegDst ) printf("$%u, $%u, %i\n", instruction_mem[pc].rt, instruction_mem[pc].rs, instruction_mem[pc].imm);
+                    else printf("$%u, $%u, $%u\n", instruction_mem[pc].rd, instruction_mem[pc].rs, instruction_mem[pc].rt);
                 }
                 else printf("%u\n",instruction_mem[pc].addr);
                 free(csignal);
@@ -80,9 +79,8 @@ int main(int argc, char** argv){
                     csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
                     printf("Num:%u | %s ",i, csignal->name);
                     if( !csignal->jump ){
-                        printf("$%u $%u ",instruction_mem[i].rs,instruction_mem[i].rt);
-                        if( !csignal->RegDst ) printf("imm %i\n", instruction_mem[i].imm);
-                        else printf("$%u\n",instruction_mem[i].rd);
+	                    if( !csignal->RegDst ) printf("$%u, $%u, %i\n", instruction_mem[pc].rt, instruction_mem[pc].rs, instruction_mem[pc].imm);
+	                    else printf("$%u, $%u, $%u\n", instruction_mem[pc].rd, instruction_mem[pc].rs, instruction_mem[pc].rt);
                     }
                     else printf("%u\n",instruction_mem[i].addr);
                     free(csignal);
@@ -94,9 +92,8 @@ int main(int argc, char** argv){
                 csignal = uc(instruction_mem[pc].opcode,instruction_mem[pc].funct);
                 printf("PC:%u | %s ",pc, csignal->name);
                 if( !csignal->jump ){
-                    printf("$%u $%u ",instruction_mem[pc].rs,instruction_mem[pc].rt);
-                    if( !csignal->RegDst ) printf("imm %i\n", instruction_mem[pc].imm);
-                    else printf("$%u\n",instruction_mem[pc].rd);
+                    if( !csignal->RegDst ) printf("$%u, $%u, %i\n", instruction_mem[pc].rt, instruction_mem[pc].rs, instruction_mem[pc].imm);
+                    else printf("$%u, $%u, $%u\n", instruction_mem[pc].rd, instruction_mem[pc].rs, instruction_mem[pc].rt);
                 }
                 else printf("%u\n",instruction_mem[pc].addr);
                 free(csignal);
@@ -458,9 +455,8 @@ void asm_code(inst *instruction_mem,const char *memo){
                     csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
                     fprintf(arq, "%s ", csignal->name);
                     if( !csignal->jump ){
-                        fprintf(arq, "$%u, $%u, ",instruction_mem[i].rs,instruction_mem[i].rt);
-                        if( !csignal->RegDst ) fprintf(arq, "%i\n", instruction_mem[i].imm);
-                        else fprintf(arq,"$t%u\n",instruction_mem[i].rd);
+                        if( !csignal->RegDst ) fprintf(arq, "$%u, $%u, %i\n", instruction_mem[i].rt, instruction_mem[i].rs, instruction_mem[i].imm);
+                        else fprintf(arq,"$%u, $%u, $%u\n", instruction_mem[i].rd, instruction_mem[i].rs, instruction_mem[i].rt);
                     }
                     else fprintf(arq, "%u\n",instruction_mem[i].addr);
         }
