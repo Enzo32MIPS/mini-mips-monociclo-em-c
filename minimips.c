@@ -128,9 +128,11 @@ int main(int argc, char** argv){
 
                 for (int g = 0; g<256; g++){
                     if(instruction_mem[g].instrucao == 0){
+                        printf("ACABOU!!!\n");
                         break;
                     }
                     pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, regtmp, resulttmp, data_mem_tmp);
+                    printf("vez: %i\n", g);
                 }
 
             break;
@@ -160,19 +162,19 @@ int main(int argc, char** argv){
                 pc--;
                 switch(instruction_mem[pc].opcode){
                     case 0:
-                    reg[instruction_mem[pc].rd] = regtmp[instruction_mem[pc].rd];
+                    reg[instruction_mem[pc].rd] = regtmp[instruction_mem[pc].rd]; //tipo r
                     break;
 
                     case 2:
-                    printf("Erro! Jump!\n");
+                    printf("Erro! Jump!\n"); //jump
                     break;
 
                     case 4:
-                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc].rt];
+                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc].rt]; //beq
                     break;
 
                     case 8:
-                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc].rt];
+                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc].rt]; //addi
                     break;
 
                     case 11:
@@ -510,13 +512,13 @@ uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, c
     }
 
     if( !csignal->Mem2Reg ){
-        data_mem_tmp[pc+1] = data_mem[usignal->result];
+        data_mem_tmp[pc-1] = data_mem[usignal->result];
         result = data_mem[usignal->result];
         resulttmp = result;
     }else result = usignal->result;
 
     if( csignal->RegWrite == 1 ){
-        regtmp[instruction_mem[pc+1].rd] = reg[instruction_mem[pc].rd];
+        regtmp[instruction_mem[pc-1].rd] = reg[instruction_mem[pc].rd];
         reg[instruction_mem[pc].rd] = result;
     }
 
