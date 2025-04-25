@@ -8,13 +8,16 @@
 int main(int argc, char** argv){
 
 	char fileN[64];
-    int8_t reg[8] = {0}, regtmp[8] = {0};
+    int8_t reg[8] = {0};
     inst instruction_mem[256] = {0};
-    int8_t data_mem[256] = {0}, data_mem_tmp[256] = {0};
+    int8_t data_mem[256] = {0};
     uint8_t pc=0;
 	control_signal* csignal;
-    int8_t aluIn, result, resulttmp;
+    int8_t aluIn, result;
 	ula_signal* usignal;
+    estado* state;
+    estado teste;
+    state = &teste;
 
     if(argc>1){
 		strcpy(fileN,argv[1]);
@@ -28,7 +31,7 @@ int main(int argc, char** argv){
 		switch(casee){
 			case '1':
 
-                pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, regtmp, resulttmp, data_mem_tmp);
+                pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, state, teste);
 
                 printf("\n");
                 for(int i=0;i<16;i++){
@@ -126,7 +129,7 @@ int main(int argc, char** argv){
                 int8_t g = 0;
 
                 while(instruction_mem[g].instrucao != 0){
-                    pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, regtmp, resulttmp, data_mem_tmp);
+                    pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, state, teste);
                     g++;
                 }
 
@@ -140,7 +143,7 @@ int main(int argc, char** argv){
 					if(tmpP) *tmpP = '\0';
 				}
 				for(int i=0;i<8;i++){
-					reg[i] = 0;
+					reg[i] = 1;
 				}
 				for(int i=0;i<256;i++){
 					data_mem[i]=0;
@@ -154,38 +157,8 @@ int main(int argc, char** argv){
                     printf("Erro! Impossivel executar o comando\n");
                     exit(3);
                 }
-                pc--;
-                switch(instruction_mem[pc].opcode){
-                    case 0:
-                    reg[instruction_mem[pc].rd] = regtmp[instruction_mem[pc].rd]; //tipo r
-                    break;
 
-                    case 2:
-                    printf("Erro! Jump!\n"); //jump
-                    break;
-
-                    case 4:
-                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc].rt]; //beq
-                    break;
-
-                    case 8:
-                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc].rt]; //addi
-                    break;
-
-                    case 11:
-                    reg[instruction_mem[pc].rt] = regtmp[instruction_mem[pc-1].rd]; //lw
-                    break;
-
-                    case 15:
-                    data_mem[instruction_mem[pc].imm] = data_mem_tmp[instruction_mem[pc].imm]; //sw
-                    break;
-
-                    default:
-                    exit(1);
-                    break;
-
-
-                }
+                pc = back(pc, reg, data_mem, state, csignal, instruction_mem, usignal);
         }
 
 		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load data memory data\n8)store data memory data\n9)run\na)load instruction memory\nb)back\n0)quit\n:");
@@ -488,11 +461,40 @@ void write_dat(const char* name, int8_t* a){
 	return;
 }
 
-uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, control_signal *csignal, int8_t aluIn, int8_t result, ula_signal *usignal, int8_t *regtmp, int8_t resulttmp, int8_t *data_mem_tmp){
+uint8_t back(uint8_t pc, int8_t *reg, int8_t *data_mem, estado* state, control_signal* csignal, inst* instruction_mem, ula_signal* usignal){
+    /*state->pct = pc;
+    if (csignal->MemWrite == 1){
+        state->data[instruction_mem[pc].rt+instruction_mem[pc].imm] = data_mem[instruction_mem[pc].rt+instruction_mem[pc].imm];
+    }
+    if (csignal->RegWrite == 1 && csignal->RegDst == 1){
+        state->regis[instruction_mem[pc].rd] = reg[instruction_mem[pc].rd];
+    }
+    if (csignal->RegWrite == 1 && csignal->RegDst == 0){
+        state->regis = reg;
+    }*/
+    //pc = state->pc;
+
+    if (csignal->RegWrite == 1 && csignal->RegDst == 1){
+        printf("Erro 6\n");
+        reg[instruction_mem[state->pct].rd] = state->regis[instruction_mem[state->pct].rd];
+    }
+    if (csignal->RegWrite == 1 && csignal->RegDst == 0){
+        printf("Erro 7\n");
+        reg[instruction_mem[state->pct].rt] = state->regis[instruction_mem[state->pct].rt];
+    }
+    if (csignal->MemWrite == 1){
+        printf("Erro 5\n");
+        data_mem[usignal->result] = state->data[instruction_mem[state->pct].rd];
+    }
+    return state->pct--;
+}
+
+uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, control_signal *csignal, int8_t aluIn, int8_t result, ula_signal *usignal, estado* state, estado teste){
 
     decod(instruction_mem+pc);
 
     csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
+
 
     if( csignal->RegDst==0 ){
         instruction_mem[pc].rd = instruction_mem[pc].rt;
@@ -504,8 +506,23 @@ uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, c
 
     usignal = ula((int16_t)reg[instruction_mem[pc].rs],(int16_t)aluIn,csignal->AluFunc);
 
+    printf("Erro 1\n");
+    state->pct = pc;
+    if (csignal->RegWrite == 1 && csignal->RegDst == 1){
+        printf("Erro 3\n");
+        state->regis[instruction_mem[pc].rd] = reg[instruction_mem[pc].rd];
+    }
+    if (csignal->RegWrite == 1 && csignal->RegDst == 0){
+        printf("Erro 4\n");
+        state->regis[instruction_mem[pc].rt] = reg[instruction_mem[pc].rt];
+    }
+
+    if (csignal->MemWrite == 1){
+        printf("Erro 2\n");
+        state->data[usignal->result] = data_mem[usignal->result];
+    }
+
     if( csignal->MemWrite == 1 ){
-        data_mem_tmp[usignal->result] = data_mem[usignal->result];
         data_mem[usignal->result] = reg[instruction_mem[pc].rd];
     }
 
@@ -514,7 +531,6 @@ uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, c
     }else result = usignal->result;
 
     if( csignal->RegWrite == 1 ){
-        regtmp[instruction_mem[pc-1].rd] = reg[instruction_mem[pc].rd];
         reg[instruction_mem[pc].rd] = result;
     }
 
