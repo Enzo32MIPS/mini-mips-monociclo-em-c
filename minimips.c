@@ -126,11 +126,9 @@ int main(int argc, char** argv){
 
             case '9':
 
-                int8_t g = 0;
-
-                while(instruction_mem[g].instrucao != 0){
+                while(instruction_mem[pc].instrucao != 0){
                     pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, state, teste);
-                    g++;
+                    pc++;
                 }
 
             break;
@@ -143,7 +141,7 @@ int main(int argc, char** argv){
 					if(tmpP) *tmpP = '\0';
 				}
 				for(int i=0;i<8;i++){
-					reg[i] = 1;
+					reg[i] = i;
 				}
 				for(int i=0;i<256;i++){
 					data_mem[i]=0;
@@ -154,11 +152,38 @@ int main(int argc, char** argv){
             case 'b':
 
                 if (pc == 0){
-                    printf("Erro! Impossivel executar o comando\n");
-                    exit(3);
+                    printf("PC esta em zero!\n");
+                    break;
                 }
 
                 pc = back(pc, reg, data_mem, state, csignal, instruction_mem, usignal);
+
+                printf("\n");
+                for(int i=0;i<16;i++){
+                    for(int j=0;j<16;j++){
+                        printf("|%i",data_mem[16*i+j]);
+                    }
+                    printf("|\n");
+                }
+                printf("\n");
+
+                for(int i=0;i<8;i++){
+                    printf("|%i",reg[i]);
+                }
+                printf("|\n\n");
+
+                decod(instruction_mem+pc);
+                csignal = uc(instruction_mem[pc].opcode,instruction_mem[pc].funct);
+                printf("PC:%u | %s ",pc, csignal->name);
+                if( !csignal->jump ){
+                    if( !csignal->RegDst ) printf("$%u, $%u, %i\n", instruction_mem[pc].rt, instruction_mem[pc].rs, instruction_mem[pc].imm);
+                    else printf("$%u, $%u, $%u\n", instruction_mem[pc].rd, instruction_mem[pc].rs, instruction_mem[pc].rt);
+                }
+                else printf("%u\n",instruction_mem[pc].addr);
+                free(csignal);
+
+
+            break;
         }
 
 		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load data memory data\n8)store data memory data\n9)run\na)load instruction memory\nb)back\n0)quit\n:");
@@ -462,31 +487,45 @@ void write_dat(const char* name, int8_t* a){
 }
 
 uint8_t back(uint8_t pc, int8_t *reg, int8_t *data_mem, estado* state, control_signal* csignal, inst* instruction_mem, ula_signal* usignal){
-    /*state->pct = pc;
-    if (csignal->MemWrite == 1){
-        state->data[instruction_mem[pc].rt+instruction_mem[pc].imm] = data_mem[instruction_mem[pc].rt+instruction_mem[pc].imm];
-    }
-    if (csignal->RegWrite == 1 && csignal->RegDst == 1){
-        state->regis[instruction_mem[pc].rd] = reg[instruction_mem[pc].rd];
-    }
-    if (csignal->RegWrite == 1 && csignal->RegDst == 0){
-        state->regis = reg;
-    }*/
-    //pc = state->pc;
+    state->pct=pc;
+    decod(instruction_mem+pc);
+    csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
 
-    if (csignal->RegWrite == 1 && csignal->RegDst == 1){
-        printf("Erro 6\n");
-        reg[instruction_mem[state->pct].rd] = state->regis[instruction_mem[state->pct].rd];
+    printf("Erro 1\n");
+    if (csignal->RegWrite==1 && csignal->RegDst==0){
+        printf("Erro 2\n");
+        state->regis[instruction_mem[pc-1].rt] = reg[instruction_mem[pc].rt];
     }
+    if (csignal->RegWrite==1 && csignal->RegDst==1){
+        printf("Erro 3\n");
+        state->regis[instruction_mem[pc-1].rd] = reg[instruction_mem[pc].rd];
+    }
+
+
+    //decod(instruction_mem+pc);
+    //csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
+    /*if (csignal->RegWrite==1 && csignal->RegDst==1){
+        printf("Erro 3\n");
+        state->regis[instruction_mem[pc-1].rd] = reg[instruction_mem[pc].rd];
+    }
+    if (csignal->RegWrite==1 && csignal->RegDst==0){
+        printf("Erro 4\n");
+        state->regis[instruction_mem[pc-1].rt] = reg[instruction_mem[pc].rt];
+    }*/
     if (csignal->RegWrite == 1 && csignal->RegDst == 0){
-        printf("Erro 7\n");
-        reg[instruction_mem[state->pct].rt] = state->regis[instruction_mem[state->pct].rt];
+        printf("Erro 6\n");
+        reg[instruction_mem[pc].rt] = state->regis[instruction_mem[pc-1].rt];
     }
-    if (csignal->MemWrite == 1){
+    if (csignal->RegWrite == 1 && csignal->RegDst == 1){
+        printf("Erro 7\n");
+        reg[instruction_mem[pc].rd] = state->regis[instruction_mem[pc-1].rd];
+        printf("%i\n",state->regis[instruction_mem[pc].rd]);
+    }
+    /*if (csignal->MemWrite == 1){
         printf("Erro 5\n");
         data_mem[usignal->result] = state->data[instruction_mem[state->pct].rd];
-    }
-    return state->pct--;
+    }*/
+    return pc;
 }
 
 uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, control_signal *csignal, int8_t aluIn, int8_t result, ula_signal *usignal, estado* state, estado teste){
@@ -506,21 +545,10 @@ uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, c
 
     usignal = ula((int16_t)reg[instruction_mem[pc].rs],(int16_t)aluIn,csignal->AluFunc);
 
-    printf("Erro 1\n");
-    state->pct = pc;
-    if (csignal->RegWrite == 1 && csignal->RegDst == 1){
-        printf("Erro 3\n");
-        state->regis[instruction_mem[pc].rd] = reg[instruction_mem[pc].rd];
-    }
-    if (csignal->RegWrite == 1 && csignal->RegDst == 0){
-        printf("Erro 4\n");
-        state->regis[instruction_mem[pc].rt] = reg[instruction_mem[pc].rt];
-    }
-
-    if (csignal->MemWrite == 1){
+    /*if (csignal->MemWrite==1){
         printf("Erro 2\n");
         state->data[usignal->result] = data_mem[usignal->result];
-    }
+    }*/
 
     if( csignal->MemWrite == 1 ){
         data_mem[usignal->result] = reg[instruction_mem[pc].rd];
