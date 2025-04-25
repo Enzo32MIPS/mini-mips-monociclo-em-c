@@ -15,9 +15,7 @@ int main(int argc, char** argv){
 	control_signal* csignal;
     int8_t aluIn, result;
 	ula_signal* usignal;
-    estado* state;
-    estado teste;
-    state = &teste;
+	state* state_stack = NULL;
 
     if(argc>1){
 		strcpy(fileN,argv[1]);
@@ -31,7 +29,8 @@ int main(int argc, char** argv){
 		switch(casee){
 			case '1':
 
-                pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, state, teste);
+				addState(pc, reg, data_mem, &state_stack);
+                exec(instruction_mem[pc], &pc, reg, data_mem);
 
                 printf("\n");
                 for(int i=0;i<16;i++){
@@ -73,7 +72,7 @@ int main(int argc, char** argv){
 				for(int i=0;i<8;i++){
 					printf("|%i",reg[i]);
 				}
-				printf("\n\n");
+				printf("|\n\n");
 			break;
 
             case '4':
@@ -125,12 +124,15 @@ int main(int argc, char** argv){
 			break;
 
             case '9':
-
-                while(instruction_mem[pc].instrucao != 0){
-                    pc = exec(pc, reg, instruction_mem, data_mem, csignal, aluIn, result, usignal, state, teste);
-                    pc++;
-                }
-
+				{
+					uint8_t break_point;
+					printf("break point:");
+					scanf("%u", (unsigned int*)&break_point);
+                	while(pc != break_point){
+						addState(pc, reg, data_mem, &state_stack);
+                	    exec(instruction_mem[pc], &pc, reg, data_mem);
+                	}
+				}
             break;
 
 			case 'a':
@@ -151,12 +153,12 @@ int main(int argc, char** argv){
 
             case 'b':
 
-                if (pc == 0){
-                    printf("PC esta em zero!\n");
-                    break;
-                }
+				if(state_stack == NULL){
+					printf("no state to return to\n");
+					break;
+				}
 
-                pc = back(pc, reg, data_mem, state, csignal, instruction_mem, usignal);
+				loadState(&pc, reg, data_mem, &state_stack);
 
                 printf("\n");
                 for(int i=0;i<16;i++){
@@ -421,7 +423,7 @@ ula_signal* ula(int16_t reg1, int16_t reg2, uint8_t funct){
             result->result = 0;
         break;
     }
-    result->zero_flag = result->result!=0;
+    result->zero_flag = result->result==0;
     return result;
 };
 
@@ -486,72 +488,27 @@ void write_dat(const char* name, int8_t* a){
 	return;
 }
 
-uint8_t back(uint8_t pc, int8_t *reg, int8_t *data_mem, estado* state, control_signal* csignal, inst* instruction_mem, ula_signal* usignal){
-    state->pct=pc;
-    decod(instruction_mem+pc);
-    csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
+void exec(inst instruction, uint8_t* pc, int8_t* reg, int8_t* data_mem){
 
-    printf("Erro 1\n");
-    if (csignal->RegWrite==1 && csignal->RegDst==0){
-        printf("Erro 2\n");
-        state->regis[instruction_mem[pc-1].rt] = reg[instruction_mem[pc].rt];
-    }
-    if (csignal->RegWrite==1 && csignal->RegDst==1){
-        printf("Erro 3\n");
-        state->regis[instruction_mem[pc-1].rd] = reg[instruction_mem[pc].rd];
-    }
+	int8_t aluIn, result;
 
+    decod(&instruction);
 
-    //decod(instruction_mem+pc);
-    //csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
-    /*if (csignal->RegWrite==1 && csignal->RegDst==1){
-        printf("Erro 3\n");
-        state->regis[instruction_mem[pc-1].rd] = reg[instruction_mem[pc].rd];
-    }
-    if (csignal->RegWrite==1 && csignal->RegDst==0){
-        printf("Erro 4\n");
-        state->regis[instruction_mem[pc-1].rt] = reg[instruction_mem[pc].rt];
-    }*/
-    if (csignal->RegWrite == 1 && csignal->RegDst == 0){
-        printf("Erro 6\n");
-        reg[instruction_mem[pc].rt] = state->regis[instruction_mem[pc-1].rt];
-    }
-    if (csignal->RegWrite == 1 && csignal->RegDst == 1){
-        printf("Erro 7\n");
-        reg[instruction_mem[pc].rd] = state->regis[instruction_mem[pc-1].rd];
-        printf("%i\n",state->regis[instruction_mem[pc].rd]);
-    }
-    /*if (csignal->MemWrite == 1){
-        printf("Erro 5\n");
-        data_mem[usignal->result] = state->data[instruction_mem[state->pct].rd];
-    }*/
-    return pc;
-}
-
-uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, control_signal *csignal, int8_t aluIn, int8_t result, ula_signal *usignal, estado* state, estado teste){
-
-    decod(instruction_mem+pc);
-
-    csignal = uc((unsigned int)instruction_mem[pc].opcode,(unsigned int)instruction_mem[pc].funct);
+    control_signal* csignal = uc((unsigned int)instruction.opcode,(unsigned int)instruction.funct);
 
 
     if( csignal->RegDst==0 ){
-        instruction_mem[pc].rd = instruction_mem[pc].rt;
+        instruction.rd = instruction.rt;
     }
 
     if( !csignal->AluSrc ){
-        aluIn = reg[instruction_mem[pc].rt];
-    } else aluIn = instruction_mem[pc].imm;
+        aluIn = reg[instruction.rt];
+    } else aluIn = instruction.imm;
 
-    usignal = ula((int16_t)reg[instruction_mem[pc].rs],(int16_t)aluIn,csignal->AluFunc);
-
-    /*if (csignal->MemWrite==1){
-        printf("Erro 2\n");
-        state->data[usignal->result] = data_mem[usignal->result];
-    }*/
+    ula_signal* usignal = ula((int16_t)reg[instruction.rs],(int16_t)aluIn,csignal->AluFunc);
 
     if( csignal->MemWrite == 1 ){
-        data_mem[usignal->result] = reg[instruction_mem[pc].rd];
+        data_mem[usignal->result] = reg[instruction.rd];
     }
 
     if( !csignal->Mem2Reg ){
@@ -559,19 +516,47 @@ uint8_t exec(uint8_t pc, int8_t *reg, inst *instruction_mem, int8_t *data_mem, c
     }else result = usignal->result;
 
     if( csignal->RegWrite == 1 ){
-        reg[instruction_mem[pc].rd] = result;
+        reg[instruction.rd] = result;
     }
 
     if( csignal->jump == 1 ){
-        pc = instruction_mem[pc].addr;
-    }else pc++;
+        (*pc) = instruction.addr;
+    }else (*pc)++;
 
     if( csignal->branch && usignal->zero_flag ){
-        pc += instruction_mem[pc].imm;
+        (*pc) += instruction.imm;
     }
 
     free(csignal);
     free(usignal);
 
-    return pc;
+	return;
+}
+void addState(uint8_t pc, int8_t* reg, int8_t* data_mem, state** stack){
+	state* temp = malloc(sizeof(state));
+	temp->pc = pc;
+	for(int i=0;i<8;i++){
+		temp->registers[i] = reg[i];
+		temp->data_mem[i] = data_mem[i];
+	}
+	for(int i=8;i<256;i++){
+		temp->data_mem[i] = data_mem[i];
+	}
+	temp->next = *stack;
+	*stack = temp;
+	return;
+}
+void loadState(uint8_t *pc, int8_t* reg, int8_t* data_mem, state** stack){
+	state* temp = *stack;
+	*pc = temp->pc;
+	for(int i=0;i<8;i++){
+		reg[i] = temp->registers[i];
+		data_mem[i] = temp->data_mem[i];
+	}
+	for(int i=8;i<256;i++){
+		data_mem[i] = temp->data_mem[i];
+	}
+	*stack = temp->next;
+	free(temp);
+	return;
 }
