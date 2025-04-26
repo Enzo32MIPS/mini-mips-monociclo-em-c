@@ -75,19 +75,19 @@ int main(int argc, char** argv){
 				printf("|\n\n");
 			break;
 
-			case '4':
-				for(int i=0;i<256;i++){
-					decod(instruction_mem+i);
-					csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
-					printf("Num:%u | %s ",i, csignal->name);
-					if( !csignal->jump ){
-						if( !csignal->RegDst ) printf("$%u, $%u, %i\n", instruction_mem[i].rt, instruction_mem[i].rs, instruction_mem[i].imm);
-						else printf("$%u, $%u, $%u\n", instruction_mem[i].rd, instruction_mem[i].rs, instruction_mem[i].rt);
-					}
-					else printf("%u\n",instruction_mem[i].addr);
-					free(csignal);
-				}
-			break;
+            case '4':
+                for(int i=0;i<256;i++){
+                    decod(instruction_mem+i);
+                    csignal = uc(instruction_mem[i].opcode,instruction_mem[i].funct);
+                    printf("Num:%u | %s ",i, csignal->name);
+                    if( !csignal->jump ){
+	                    if( !csignal->RegDst ) printf("$%u, $%u, %i\n", instruction_mem[i].rt, instruction_mem[i].rs, instruction_mem[i].imm);
+	                    else printf("$%u, $%u, $%u\n", instruction_mem[i].rd, instruction_mem[i].rs, instruction_mem[i].rt);
+                    }
+                    else printf("%u\n",instruction_mem[i].addr);
+                    free(csignal);
+                }
+            break;
 
             case '5':
                 decod(instruction_mem+pc);
@@ -128,10 +128,10 @@ int main(int argc, char** argv){
 					uint8_t break_point;
 					printf("break point:");
 					scanf("%u", (unsigned int*)&break_point);
-					do{
+                	while(pc != break_point){
 						addState(pc, reg, data_mem, &state_stack);
-						exec(instruction_mem[pc], &pc, reg, data_mem);
-					}while(pc != break_point);
+                	    exec(instruction_mem[pc], &pc, reg, data_mem);
+                	}
 				}
             break;
 
@@ -191,7 +191,6 @@ int main(int argc, char** argv){
 		printf("1)step\n2)show data memory\n3)show registers\n4)show all instructions\n5)show intruction to run\n6)make .asm\n7)load data memory data\n8)store data memory data\n9)run\na)load instruction memory\nb)back\n0)quit\n:");
 		do scanf("%c",&casee); while(casee=='\n');
 	}while(casee!='0');
-	clearState(state_stack);
     return 0;
 }
 
@@ -559,12 +558,5 @@ void loadState(uint8_t *pc, int8_t* reg, int8_t* data_mem, state** stack){
 	}
 	*stack = temp->next;
 	free(temp);
-	return;
-}
-void clearState(state* stack){
-	for(state* tmp;stack!=NULL;stack=tmp){
-		tmp = stack->next;
-		free(stack);
-	}
 	return;
 }

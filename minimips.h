@@ -50,4 +50,3 @@ void write_dat(const char* name, int8_t* a);
 void exec(inst instruction, uint8_t* pc, int8_t* reg, int8_t* data_mem);
 void addState(uint8_t pc, int8_t* reg, int8_t* data_mem, state** stack);
 void loadState(uint8_t *pc, int8_t* reg, int8_t* data_mem, state** stack);
-void clearState(state* stack);
