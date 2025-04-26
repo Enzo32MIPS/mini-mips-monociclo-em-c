@@ -128,10 +128,10 @@ int main(int argc, char** argv){
 					uint8_t break_point;
 					printf("break point:");
 					scanf("%u", (unsigned int*)&break_point);
-                	while(pc != break_point){
+					do{
 						addState(pc, reg, data_mem, &state_stack);
-                	    exec(instruction_mem[pc], &pc, reg, data_mem);
-                	}
+						exec(instruction_mem[pc], &pc, reg, data_mem);
+					}while(pc != break_point);
 				}
             break;
 
@@ -558,5 +558,13 @@ void loadState(uint8_t *pc, int8_t* reg, int8_t* data_mem, state** stack){
 	}
 	*stack = temp->next;
 	free(temp);
+	return;
+}
+void clearState(state* stack){
+	do{
+		state* tmp = stack->next;
+		free(stack);
+		stack = tmp;
+	}while(stack);
 	return;
 }
