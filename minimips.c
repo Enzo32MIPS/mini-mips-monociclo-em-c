@@ -106,6 +106,15 @@ int main(int argc, char** argv){
 			break;
 
 			case '7':
+
+				pc=0;
+				for(int i=0;i<8;i++){
+					reg[i] = 0;
+				}
+				for(int i=0;i<256;i++){
+					data_mem[i]=0;
+				}
+
 				printf("Digite nome do arquivo: ");
 				do fgets(temp,29,stdin); while( !((strcmp(temp,"\n"))||(strcmp(temp,"\n\0"))) );
 				temp[strcspn(temp,"\n")]='\0';
@@ -143,7 +152,7 @@ int main(int argc, char** argv){
 					if(tmpP) *tmpP = '\0';
 				}
 				for(int i=0;i<8;i++){
-					reg[i] = i;
+					reg[i] = 0;
 				}
 				for(int i=0;i<256;i++){
 					data_mem[i]=0;
@@ -508,7 +517,7 @@ void exec(inst instruction, uint8_t* pc, int8_t* reg, int8_t* data_mem){
     ula_signal* usignal = ula((int16_t)reg[instruction.rs],(int16_t)aluIn,csignal->AluFunc);
 
     if( csignal->MemWrite == 1 ){
-        data_mem[usignal->result] = reg[instruction.rd];
+        data_mem[usignal->result] = reg[instruction.rt];
     }
 
     if( !csignal->Mem2Reg ){
